@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sugar & Tea - Menu & Dashboard</title>
+<style>
+body { font-family: Arial, sans-serif; background:#fff7f0; color:#333; padding:20px; }
+h1,h2{text-align:center;color:#d2691e;}
+.menu-section, .dashboard-section{margin-bottom:30px;}
+.item{background:#fff; padding:15px; margin-bottom:10px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+select,input[type=text],button{padding:5px;margin:5px 0;}
+button{background:#d2691e;color:white;border:none;border-radius:5px;cursor:pointer;}
+button:hover{background:#c25b1a;}
+#cart{margin-top:20px;padding:15px;background:#ffe6d9;border-radius:10px;}
+#orders-log{padding:15px;background:#f0f0f0;border-radius:10px; max-height:300px; overflow-y:auto;}
+</style>
+</head>
+<body>
+
+<h1>🍹 Sugar & Tea 🍰</h1>
+
+<!-- CUSTOMER MENU -->
+<div class="menu-section">
+<h2>Menu</h2>
+
+<div class="item">
+<strong>Matcha</strong><br>
+Type: <select id="matcha-type"><option>Classic</option><option>Vanilla</option><option>Chocolate</option></select><br>
+Milk: <select id="matcha-milk"><option>Whole</option><option>Almond</option><option>Oat</option></select><br>
+<button onclick="addToCart('Matcha','Type: '+document.getElementById('matcha-type').value+', Milk: '+document.getElementById('matcha-milk').value)">Add to Cart</button>
+</div>
+
+<div class="item">
+<strong>Latte</strong><br>
+Type: <select id="latte-type"><option>Classic</option><option>Vanilla</option><option>Caramel</option></select><br>
+Milk: <select id="latte-milk"><option>Whole</option><option>Almond</option><option>Oat</option></select><br>
+<button onclick="addToCart('Latte','Type: '+document.getElementById('latte-type').value+', Milk: '+document.getElementById('latte-milk').value)">Add to Cart</button>
+</div>
+
+<div class="item">
+<strong>Cookie</strong><br>
+Flavor: <select id="cookie-flavor"><option>Chocolate Chip</option><option>Oatmeal</option><option>Peanut Butter</option></select><br>
+<button onclick="addToCart('Cookie','Flavor: '+document.getElementById('cookie-flavor').value)">Add to Cart</button>
+</div>
+
+<div class="item">
+<strong>Brownie</strong><br>
+Type: <select id="brownie-type"><option>Classic</option><option>Fudge</option><option>Walnut</option></select><br>
+<button onclick="addToCart('Brownie','Type: '+document.getElementById('brownie-type').value)">Add to Cart</button>
+</div>
+
+<h2>Cart</h2>
+<div id="cart">Your cart is empty.</div>
+Name: <input type="text" id="customer-name" placeholder="Enter your name"><br>
+<button onclick="placeOrder()">Place Order</button>
+</div>
+
+<!-- EMPLOYEE DASHBOARD -->
+<div class="dashboard-section">
+<h2>Employee Dashboard</h2>
+<div id="orders-log">No orders yet.</div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+// Replace with your Firebase config
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let cart = [];
+function addToCart(item, details) {
+    cart.push(item+' ('+details+')');
+    document.getElementById('cart').innerHTML = cart.join('<br>');
+}
+
+function placeOrder() {
+    const name = document.getElementById('customer-name').value.trim();
+    if(name === '') { alert('Please enter your name'); return; }
+    if(cart.length === 0) { alert('Cart is empty'); return; }
+    const order = { name: name, items: cart, timestamp: Date.now() };
+    db.ref('orders').push(order);
+    cart=[]; document.getElementById('cart').innerHTML='Your cart is empty.';
+    document.getElementById('customer-name').value='';
+    alert('Order placed successfully!');
+}
+
+// Real-time dashboard updates
+const ordersLog = document.getElementById('orders-log');
+if(Notification.permission!=='granted') Notification.requestPermission();
+db.ref('orders').on('child_added', (snapshot) => {
+    const order = snapshot.val();
+    const div = document.createElement('div');
+    div.style.padding='10px'; div.style.borderBottom='1px solid #eee';
+    div.innerHTML = `<strong>${order.name}</strong><br>${order.items.join('<br>')}`;
+    ordersLog.prepend(div);
+    if(Notification.permission==='granted') {
+        new Notification('New Order!', { body: `Order from ${order.name}` });
+    }
+});
+</script>
+</body>
+</html>
